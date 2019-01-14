@@ -63,8 +63,8 @@ while $checkNewDatabase; do
 done
 
 # Run phpmyadmin image
-if [[ !-z "$REMOTE_MYSQL_HOST" ]] && [[ !-z "$REMOTE_MYSQL_PORT" ]]; then
-   docker run -d --name "$1"-phpmyadmin --network "$1-network" -e PMA_HOST="$REMOTE_MYSQL_HOST" -e PMA_PORT="$REMOTE_MYSQL_PORT" -p 8888:80 "$REGISTRY/phpmyadmin"
+if [ ! -z "$REMOTE_MYSQL_HOST" ] && [ ! -z "$REMOTE_MYSQL_PORT" ]; then
+   docker run -d --name "$projectInput"-phpmyadmin --network "$projectInput-network" -e PMA_HOST="$REMOTE_MYSQL_HOST" -e PMA_PORT="$REMOTE_MYSQL_PORT" -p 8888:80 "$REGISTRY/phpmyadmin"
 else
    docker run -d --name "$1"-phpmyadmin --network "$1-network" -e PMA_HOST="$1-mysql" -e PMA_PORT=3306 -p 8888:80 "$REGISTRY/phpmyadmin"
 fi

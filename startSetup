@@ -35,7 +35,7 @@ updateSourceAndAssets() {
     #Update Assets
     echo "Show active projects"
     ls -l "$ASSETS_FOLDER"
-    echo -n "Which project do you want to synchronize? [drupal/wordpress]"
+    echo -n "Which project do you want to synchronize? "
     read projectInput
 
     #Copy drupal assets and settings
@@ -44,10 +44,6 @@ updateSourceAndAssets() {
         echo "Start copy FROM $ASSETS_FOLDER/$projectInput/$branchInput/files TO $PROJECT_ASSETS_FOLDER"
         sleep 5
         cp -R "$ASSETS_FOLDER/$projectInput/$branchInput/files" "$PROJECT_ASSETS_FOLDER"
-
-    #For wordpress projects start only web-server without database
-    else
-        startPhpApache "$projectInput"
     fi
 
     #ToDo: Copy symfony assets and settings
