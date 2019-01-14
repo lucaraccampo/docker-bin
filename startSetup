@@ -1,0 +1,96 @@
+#!/usr/bin/env bash
+
+. `pwd`/docker-config/config.sh
+
+#Login to private registry
+authenticate() {
+    if ! grep -q "$REGISTRY" ~/.docker/config.json ; then
+        echo "Docker Sign in"
+        docker login "$REGISTRY"
+        if [ $? -ne 0 ]; then
+            echo Login failed!
+            exit
+        fi
+    fi
+    echo Login success!
+}
+
+#Update project from git
+updateSourceAndAssets() {
+    echo "Show active branches"
+    git branch --all
+    echo "--------------------"
+
+    #Update source code
+    echo -n "Which branch do you want to use? The system will take care to checkout and pull automatically: "
+    read branchInput
+    if [[ -n "$branchInput" ]]
+    then
+        git checkout "$branchInput" && git pull origin "$branchInput"
+    else
+        echo "ERROR: No branch selected"
+        exit
+    fi
+
+    #Update Assets
+    echo "Show active projects"
+    ls -l "$ASSETS_FOLDER"
+    echo -n "Which project do you want to synchronize? [drupal/wordpress]"
+    read projectInput
+
+    #Copy drupal assets and settings
+    if [[ "$AVAILABLE_PLATFORM" == drupal ]]
+    then
+        echo "Start copy FROM $ASSETS_FOLDER/$projectInput/$branchInput/files TO $PROJECT_ASSETS_FOLDER"
+        sleep 5
+        cp -R "$ASSETS_FOLDER/$projectInput/$branchInput/files" "$PROJECT_ASSETS_FOLDER"
+
+    #For wordpress projects start only web-server without database
+    else
+        startPhpApache "$projectInput"
+    fi
+
+    #ToDo: Copy symfony assets and settings
+
+    read -p "Do you want start project with local or remote mysql container?[local/remote] " env
+    checkEnvirnonment=true
+    while $checkEnvirnoment; do
+        case $env in
+            local ) startLocal "$projectInput" "$branchInput"
+                    checkEnvirnoment=false
+                    ;;
+            remote ) startRemote
+                     checkEnvirnoment=false
+                     ;;
+            * ) read -p "Retype envirnoment: " env
+                ;;
+        esac
+    done
+}
+
+#Pull images
+updateImages() {
+    authenticate &&
+    updateSourceAndAssets
+}
+
+
+# Check Docker daemon is available
+
+read -p "Is the docker daemon running [Yy/Nn]?" yn
+checkDockerStatus=true
+while $checkDockerStatus; do
+    case $yn in
+        [Yy] ) updateImages
+               checkDockerStatus=false
+               ;;
+        [Nn] ) echo "Start daemon and retry"
+                checkDockerStatus=false
+                ;;
+        * ) read -p "Please answer Yy or Nn " yn
+            ;;
+    esac
+done
+
+
+

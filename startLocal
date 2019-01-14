@@ -1,0 +1,85 @@
+#!/usr/bin/env bash
+
+. `pwd`/docker-config/config.sh
+
+startMysqlContainerWithDump() {
+
+    docker rm "$1-mysql"
+    #Download dump and run mysql container
+    echo "Available sql file: "
+    ls -l "$ASSETS_FOLDER/$1/$2" | grep .sql
+    read -p "Choice sql file to init database: " sqlDump
+
+    checkFileExist=true
+    while $checkFileExist; do
+        if [ -e "$ASSETS_FOLDER/$1/$2/$sqlDump" ]
+        then
+            if [ -e "$DOCUMENT_ROOT"/initdb ]
+            then
+                rm -rf "$DOCUMENT_ROOT"/initdb/*
+            else
+                mkdir "$DOCUMENT_ROOT"/initdb
+            fi
+            cp "$ASSETS_FOLDER/$1/$2/$sqlDump" "$DOCUMENT_ROOT"/initdb
+            checkFileExist=false
+        else
+            read -p "Choice a valid sql file: " sqlDump
+        fi
+    done
+
+    docker run -d --name "$1-mysql" --network "$1-network" -p 3306:3306 -e MYSQL_ROOT_PASSWORD=root -e MYSQL_DATABASE="$1_$2" -v "$DOCUMENT_ROOT"/initdb:/docker-entrypoint-initdb.d --restart=always "$REGISTRY/mysql57"
+}
+
+startMysqlContainer() {
+    docker start "$1-mysql"
+}
+
+#Stop and remove existing container
+docker stop "$1-mysql"
+docker stop "$1-phpmyadmin" && docker rm "$1-phpmyadmin"
+docker stop "$1-php-apache" && docker rm "$1-php-apache"
+
+#Clean network
+docker network rm "$1-network"
+docker network create "$1-network"
+
+#Update local mysql image
+docker pull "$REGISTRY/mysql57"
+docker pull "$REGISTRY/phpmyadmin"
+
+read -p "Do you want start from a new database? " yn
+checkNewDatabase=true
+while $checkNewDatabase; do
+    case $yn in
+        [Yy] ) startMysqlContainerWithDump $1 $2
+               checkNewDatabase=false
+               ;;
+        [Nn] ) startMysqlContainer $1 $2
+               checkNewDatabase=false
+               ;;
+        * ) read -p "Please answer Yy or Nn " yn
+            ;;
+    esac
+done
+
+# Run phpmyadmin image
+if [[ !-z "$REMOTE_MYSQL_HOST" ]] && [[ !-z "$REMOTE_MYSQL_PORT" ]]; then
+   docker run -d --name "$1"-phpmyadmin --network "$1-network" -e PMA_HOST="$REMOTE_MYSQL_HOST" -e PMA_PORT="$REMOTE_MYSQL_PORT" -p 8888:80 "$REGISTRY/phpmyadmin"
+else
+   docker run -d --name "$1"-phpmyadmin --network "$1-network" -e PMA_HOST="$1-mysql" -e PMA_PORT=3306 -p 8888:80 "$REGISTRY/phpmyadmin"
+fi
+
+# Run php-apache image
+docker pull "$REGISTRY/$PHP_APACHE_VERSION"
+
+ipAddress=`ifconfig | grep -Eo 'inet (addr:)?([0-9]*\.){3}[0-9]*' | grep -Eo '([0-9]*\.){3}[0-9]*' | grep -v '127.0.0.1'`
+
+docker run -d --name "$1-php-apache" --network "$1-network" --link "$1-mysql:$1-mysql" -p 80:80 -e XDEBUG_CONFIG="remote_host=$ipAddress" -v "$DOCUMENT_ROOT":/var/www/html "$REGISTRY/$PHP_APACHE_VERSION"
+
+# Copy renamed specific config file
+if [ $AVAILABLE_PLATFORM == drupal ]
+then
+    cp "$DOCUMENT_ROOT"/sites/example.settings.docker.local."$2".php "$DOCUMENT_ROOT"/"$PROJECT_ASSETS_FOLDER"/settings.php
+    cp "$DOCUMENT_ROOT"/sites/example.settings.local.develop.php "$DOCUMENT_ROOT"/"$PROJECT_ASSETS_FOLDER"/settings.local.php
+fi
+
