@@ -2,9 +2,57 @@
 
 . `pwd`/docker-config/config.sh
 
+#Update project from git
+updateImages() {
+    echo "Show active branches"
+    git branch --all
+    echo "--------------------"
+
+    #Update source code
+    echo -n "Which branch do you want to use? The system will take care to checkout and pull automatically: "
+    read branchInput
+    if [[ -n "$branchInput" ]]
+    then
+        git checkout "$branchInput" && git pull origin "$branchInput"
+    else
+        echo "ERROR: No branch selected"
+        exit
+    fi
+
+    #Update Assets
+    echo "Show active projects"
+    ls -l "$ASSETS_FOLDER"
+    echo -n "Which project do you want to synchronize? "
+    read projectInput
+
+    #Copy drupal assets and settings
+    if [[ "$AVAILABLE_PLATFORM" == wordpress ]]
+    then
+        echo "Start copy FROM $ASSETS_FOLDER/$projectInput/$branchInput/uploads TO $PROJECT_ASSETS_FOLDER"
+        sleep 5
+        cp -R "$ASSETS_FOLDER/$projectInput/$branchInput/uploads" "$PROJECT_ASSETS_FOLDER"
+    fi
+
+    #ToDo: other platforms
+}
 
 echo -n "Which project do you want to synchronize? Type a name: "
 read projectInput
+
+read -p "Do you want to synchronize assets folder [Yy/Nn]?" yn
+checkDockerStatus=true
+while $checkDockerStatus; do
+    case $yn in
+        [Yy] ) updateImages
+               checkDockerStatus=false
+               ;;
+        [Nn] ) echo "Assets not will be synchronized"
+                checkDockerStatus=false
+                ;;
+        * ) read -p "Please answer Yy or Nn " yn
+            ;;
+    esac
+done
 
 #Stop and remove existing container
 docker stop "$projectInput-phpmyadmin" && docker rm "$projectInput-phpmyadmin"
