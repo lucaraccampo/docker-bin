@@ -2,22 +2,8 @@
 
 . `pwd`/docker-config/config.sh
 
-#Update project from git
+#Update assets
 updateImages() {
-    echo "Show active branches"
-    git branch --all
-    echo "--------------------"
-
-    #Update source code
-    echo -n "Which branch do you want to use? The system will take care to checkout and pull automatically: "
-    read branchInput
-    if [[ -n "$branchInput" ]]
-    then
-        git checkout "$branchInput" && git pull origin "$branchInput"
-    else
-        echo "ERROR: No branch selected"
-        exit
-    fi
 
     #Update Assets
     echo "Show active projects"
@@ -38,6 +24,21 @@ updateImages() {
 
 echo -n "Which project do you want to synchronize? Type a name: "
 read projectInput
+
+echo "Show active branches"
+git branch --all
+echo "--------------------"
+
+#Update source code
+echo -n "Which branch do you want to use? The system will take care to checkout and pull automatically: "
+read branchInput
+if [[ -n "$branchInput" ]]
+then
+    git checkout "$branchInput" && git pull origin "$branchInput"
+else
+    echo "ERROR: No branch selected"
+    exit
+fi
 
 read -p "Do you want to synchronize assets folder [Yy/Nn]?" yn
 checkDockerStatus=true
