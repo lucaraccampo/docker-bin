@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 . `pwd`/docker-config/config.sh
+. common
 
 #Login to private registry
 authenticate() {
@@ -17,20 +18,7 @@ authenticate() {
 
 #Update project from git
 updateSourceAndAssets() {
-    echo "Show active branches"
-    git branch --all
-    echo "--------------------"
-
-    #Update source code
-    echo -n "Which branch do you want to use? The system will take care to checkout and pull automatically: "
-    read branchInput
-    if [[ -n "$branchInput" ]]
-    then
-        git checkout "$branchInput" && git pull origin "$branchInput"
-    else
-        echo "ERROR: No branch selected"
-        exit
-    fi
+    choiceBranch
 
     #Update Assets
     echo "Show active projects"
@@ -66,27 +54,12 @@ updateSourceAndAssets() {
 
 #Pull images
 updateImages() {
-    authenticate &&
+    #authenticate &&
     updateSourceAndAssets
 }
 
-
 # Check Docker daemon is available
-
-read -p "Is the docker daemon running [Yy/Nn]?" yn
-checkDockerStatus=true
-while $checkDockerStatus; do
-    case $yn in
-        [Yy] ) updateImages
-               checkDockerStatus=false
-               ;;
-        [Nn] ) echo "Start daemon and retry"
-                checkDockerStatus=false
-                ;;
-        * ) read -p "Please answer Yy or Nn " yn
-            ;;
-    esac
-done
+checkDockerStatus
 
 
 

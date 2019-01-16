@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+
+checkDockerStatus() {
+    read -p "Is the docker daemon running [Yy/Nn]?" yn
+    checkDockerStatus=true
+    while $checkDockerStatus; do
+        case $yn in
+            [Yy] ) checkDockerStatus=false
+                   ;;
+            [Nn] ) echo "Start daemon and retry"
+                    checkDockerStatus=false
+                    ;;
+            * ) read -p "Please answer Yy or Nn " yn
+                ;;
+        esac
+    done
+}
+
+choiceBranch() {
+    echo "Show active branches"
+    git branch --all
+    echo "--------------------"
+
+    #Update source code
+    echo -n "Which branch do you want to use? The system will take care to checkout and pull automatically: "
+    read branchInput
+    if [[ -n "$branchInput" ]]
+    then
+        git checkout "$branchInput" && git pull origin "$branchInput"
+    else
+        echo "ERROR: No branch selected"
+        exit
+    fi
+}
+
+# SSH Connection to show active projects
+showActiveProjects() {
+    echo "Show active projects"
+    ssh "$SSH_USERNAME"@"$REMOTE_HOST" sudo ls -l "$ASSETS_FOLDER"
+
+    if [ $? -eq 0 ]; then
+        updateImages
+    else
+        echo "Failed attempt ssh connection for $SSH_USERNAME to $REMOTE_HOST"
+        exit
+    fi
+}
