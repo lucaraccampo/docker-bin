@@ -1,18 +1,29 @@
 #!/usr/bin/env bash
 
 . `pwd`/docker-config/config.sh
+. common
 
 startMysqlContainerWithDump() {
 
+    #Clean network
+    docker network rm "$1-network"
+    docker network create "$1-network"
     docker rm "$1-mysql"
     #Download dump and run mysql container
-    echo "Available sql file: "
-    ls -l "$ASSETS_FOLDER/$1/$2" | grep .sql
+    echo "Show available dump"
+    ssh "$SSH_USERNAME"@"$REMOTE_HOST" sudo ls -l "$ASSETS_FOLDER/$1/$2"
+
+    if [ ! $? -eq 0 ]; then
+        echo "Failed attempt ssh connection for $SSH_USERNAME to $REMOTE_HOST"
+        exit
+    fi
     read -p "Choice sql file to init database: " sqlDump
 
     checkFileExist=true
     while $checkFileExist; do
-        if [ -e "$ASSETS_FOLDER/$1/$2/$sqlDump" ]
+        ssh "$SSH_USERNAME"@"$REMOTE_HOST" sudo cp "$ASSETS_FOLDER/$1/$2/$sqlDump /home/$SSH_USERNAME"
+
+        if [ $? -eq 0 ]
         then
             if [ -e "$DOCUMENT_ROOT"/initdb ]
             then
@@ -20,41 +31,37 @@ startMysqlContainerWithDump() {
             else
                 mkdir "$DOCUMENT_ROOT"/initdb
             fi
-            cp "$ASSETS_FOLDER/$1/$2/$sqlDump" "$DOCUMENT_ROOT"/initdb
+            scp -r "$SSH_USERNAME"@"$REMOTE_HOST":"/home/$SSH_USERNAME/$sqlDump" "$DOCUMENT_ROOT"/initdb
             checkFileExist=false
         else
             read -p "Choice a valid sql file: " sqlDump
         fi
     done
 
-    docker run -d --name "$1-mysql" --network "$1-network" -p 3306:3306 -e MYSQL_ROOT_PASSWORD=root -e MYSQL_DATABASE="$1_$2" -v "$DOCUMENT_ROOT"/initdb:/docker-entrypoint-initdb.d --restart=always "$REGISTRY/mysql57"
+    docker run -d --name "$1-mysql" --network "$1-network" -p 3306:3306 -e MYSQL_ROOT_PASSWORD=root -e MYSQL_DATABASE="$1_$3" -v "$DOCUMENT_ROOT"/initdb:/docker-entrypoint-initdb.d --restart=always "$REGISTRY/mysql57"
 }
 
-startMysqlContainer() {
-    docker start "$1-mysql"
-}
 
 #Stop and remove existing container
 docker stop "$1-mysql"
 docker stop "$1-phpmyadmin" && docker rm "$1-phpmyadmin"
 docker stop "$1-php-apache" && docker rm "$1-php-apache"
 
-#Clean network
-docker network rm "$1-network"
-docker network create "$1-network"
-
 #Update local mysql image
 docker pull "$REGISTRY/mysql57"
 docker pull "$REGISTRY/phpmyadmin"
 
+branchNameDashed="${2////_}"
+
 read -p "Do you want start from a new database? " yn
+
 checkNewDatabase=true
 while $checkNewDatabase; do
     case $yn in
-        [Yy] ) startMysqlContainerWithDump $1 $2
+        [Yy] ) startMysqlContainerWithDump $1 $2 "$branchNameDashed"
                checkNewDatabase=false
                ;;
-        [Nn] ) startMysqlContainer $1 $2
+        [Nn] ) docker start "$1-mysql"
                checkNewDatabase=false
                ;;
         * ) read -p "Please answer Yy or Nn " yn
@@ -64,7 +71,7 @@ done
 
 # Run phpmyadmin image
 if [ ! -z "$REMOTE_MYSQL_HOST" ] && [ ! -z "$REMOTE_MYSQL_PORT" ]; then
-   docker run -d --name "$projectInput"-phpmyadmin --network "$projectInput-network" -e PMA_HOST="$REMOTE_MYSQL_HOST" -e PMA_PORT="$REMOTE_MYSQL_PORT" -p 8888:80 "$REGISTRY/phpmyadmin"
+   docker run -d --name "$1"-phpmyadmin --network "$1-network" -e PMA_HOST="$REMOTE_MYSQL_HOST" -e PMA_PORT="$REMOTE_MYSQL_PORT" -p 8888:80 "$REGISTRY/phpmyadmin"
 else
    docker run -d --name "$1"-phpmyadmin --network "$1-network" -e PMA_HOST="$1-mysql" -e PMA_PORT=3306 -p 8888:80 "$REGISTRY/phpmyadmin"
 fi
@@ -79,7 +86,18 @@ docker run -d --name "$1-php-apache" --network "$1-network" --link "$1-mysql:$1-
 # Copy renamed specific config file
 if [ $AVAILABLE_PLATFORM == drupal ]
 then
-    cp "$DOCUMENT_ROOT"/sites/example.settings.docker.local."$2".php "$DOCUMENT_ROOT"/"$PROJECT_ASSETS_FOLDER"/settings.php
-    cp "$DOCUMENT_ROOT"/sites/example.settings.local.develop.php "$DOCUMENT_ROOT"/"$PROJECT_ASSETS_FOLDER"/settings.local.php
+    if [ -e "$DOCUMENT_ROOT"sites/example.settings.docker.local."$branchNameDashed".php ]; then
+        if [ -e "$PROJECT_ASSETS_FOLDER"settings.php ];then
+            chmod 777 "$PROJECT_ASSETS_FOLDER"settings.php
+        fi
+        cp "$DOCUMENT_ROOT"sites/example.settings.docker.local."$branchNameDashed".php "$PROJECT_ASSETS_FOLDER"settings.php
+    fi
+
+    if [ -e "$DOCUMENT_ROOT"sites/example.settings.local."$branchNameDashed".php ]; then
+        if [ -e "$PROJECT_ASSETS_FOLDER"settings.local.php ];then
+            chmod 777 "$PROJECT_ASSETS_FOLDER"settings.php
+        fi
+        cp "$DOCUMENT_ROOT"sites/example.settings.local."$branchNameDashed".php "$PROJECT_ASSETS_FOLDER"settings.local.php
+    fi
 fi
 

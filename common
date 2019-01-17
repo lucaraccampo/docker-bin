@@ -1,5 +1,18 @@
 #!/usr/bin/env bash
 
+#Login to private registry
+authenticate() {
+    if ! grep -q "$REGISTRY" ~/.docker/config.json ; then
+        echo "Docker Sign in"
+        docker login "$REGISTRY"
+        if [ $? -ne 0 ]; then
+            echo Login failed!
+            exit
+        fi
+    fi
+    echo Login success!
+}
+
 checkDockerStatus() {
     read -p "Is the docker daemon running [Yy/Nn]?" yn
     checkDockerStatus=true
@@ -33,15 +46,76 @@ choiceBranch() {
     fi
 }
 
+choiceSynchronizeAssets() {
+
+    showActiveProjects
+
+    echo -n "Which project do you want to synchronize? "
+    read projectInput
+
+    read -p "Do you want to synchronize assets folder [Yy/Nn]? " yn
+    checkDockerStatus=true
+    while $checkDockerStatus; do
+        case $yn in
+            [Yy] ) updateImages
+                   checkDockerStatus=false
+                   ;;
+            [Nn] ) echo "Assets not will be synchronized"
+                    checkDockerStatus=false
+                    ;;
+            * ) read -p "Please answer Yy or Nn " yn
+                ;;
+        esac
+    done
+}
+
 # SSH Connection to show active projects
 showActiveProjects() {
     echo "Show active projects"
     ssh "$SSH_USERNAME"@"$REMOTE_HOST" sudo ls -l "$ASSETS_FOLDER"
 
+    if [ ! $? -eq 0 ]; then
+        echo "Failed attempt ssh connection for $SSH_USERNAME to $REMOTE_HOST"
+        exit
+    fi
+}
+
+# Update assets
+updateImages() {
+
+    #Copy drupal assets and settings
+    if [[ "$AVAILABLE_PLATFORM" == wordpress ]]
+    then
+        assetsFolderName="uploads"
+
+    elif [[ "$AVAILABLE_PLATFORM" == drupal ]]
+    then
+        assetsFolderName="files"
+    fi
+
+    echo "$SSH_USERNAME"@"$REMOTE_HOST":"/home/$SSH_USERNAME/$assetsFolderName.zip TO $PROJECT_ASSETS_FOLDER"
+    sleep 5
+    ssh "$SSH_USERNAME"@"$REMOTE_HOST" sudo cp "$ASSETS_FOLDER/$projectInput/$branchInput/$assetsFolderName.zip /home/$SSH_USERNAME"
     if [ $? -eq 0 ]; then
-        updateImages
+        scp -r "$SSH_USERNAME"@"$REMOTE_HOST":"/home/$SSH_USERNAME/$assetsFolderName.zip" "$PROJECT_ASSETS_FOLDER"
+        if [ $? -eq 0 ]; then
+            echo "$assetsFolderName.zip has been copied inside $PROJECT_ASSETS_FOLDER"
+            cd "$PROJECT_ASSETS_FOLDER"
+            unzip "$assetsFolderName".zip
+            if [ $? -eq 0 ]; then
+                echo "$assetsFolderName folder has been unzipped"
+                rm -rf "$PROJECT_ASSETS_FOLDER/$assetsFolderName.zip"
+            else
+                echo "Failed attempt to unzip $assetsFolderName folder. Do you have unzip command installed? Check and retry"
+                exit
+            fi
+        else
+            echo "Failed attempt ssh connection for $SSH_USERNAME to $REMOTE_HOST"
+            exit
+        fi
     else
         echo "Failed attempt ssh connection for $SSH_USERNAME to $REMOTE_HOST"
         exit
     fi
+
 }

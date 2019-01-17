@@ -3,63 +3,26 @@
 . `pwd`/docker-config/config.sh
 . common
 
-#Login to private registry
-authenticate() {
-    if ! grep -q "$REGISTRY" ~/.docker/config.json ; then
-        echo "Docker Sign in"
-        docker login "$REGISTRY"
-        if [ $? -ne 0 ]; then
-            echo Login failed!
-            exit
-        fi
-    fi
-    echo Login success!
-}
-
-#Update project from git
-updateSourceAndAssets() {
-    choiceBranch
-
-    #Update Assets
-    echo "Show active projects"
-    ls -l "$ASSETS_FOLDER"
-    echo -n "Which project do you want to synchronize? "
-    read projectInput
-
-    #Copy drupal assets and settings
-    if [[ "$AVAILABLE_PLATFORM" == drupal ]]
-    then
-        echo "Start copy FROM $ASSETS_FOLDER/$projectInput/$branchInput/files TO $PROJECT_ASSETS_FOLDER"
-        sleep 5
-        cp -R "$ASSETS_FOLDER/$projectInput/$branchInput/files" "$PROJECT_ASSETS_FOLDER"
-    fi
-
-    #ToDo: Copy symfony assets and settings
-
-    read -p "Do you want start project with local or remote mysql container?[local/remote] " env
-    checkEnvirnonment=true
-    while $checkEnvirnoment; do
-        case $env in
-            local ) startLocal "$projectInput" "$branchInput"
-                    checkEnvirnoment=false
-                    ;;
-            remote ) startRemote
-                     checkEnvirnoment=false
-                     ;;
-            * ) read -p "Retype envirnoment: " env
-                ;;
-        esac
-    done
-}
-
-#Pull images
-updateImages() {
-    #authenticate &&
-    updateSourceAndAssets
-}
-
 # Check Docker daemon is available
 checkDockerStatus
+choiceBranch
+choiceSynchronizeAssets
+
+cd "$DOCUMENT_ROOT"
+read -p "Do you want start project with local or remote mysql container?[local/remote] " env
+checkEnvirnonment=true
+while $checkEnvirnoment; do
+    case $env in
+        local ) startLocal "$projectInput" "$branchInput"
+                checkEnvirnoment=false
+                ;;
+        remote ) startRemote
+                 checkEnvirnoment=false
+                 ;;
+        * ) read -p "Retype envirnoment: " env
+            ;;
+    esac
+done
 
 
 

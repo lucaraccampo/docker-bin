@@ -3,62 +3,10 @@
 . `pwd`/docker-config/config.sh
 . common
 
-# Update assets
-updateImages() {
-
-    echo -n "Which project do you want to synchronize? "
-    read projectInput
-
-    #Copy drupal assets and settings
-    if [[ "$AVAILABLE_PLATFORM" == wordpress ]]
-    then
-        echo "$SSH_USERNAME"@"$REMOTE_HOST":"/home/$SSH_USERNAME/uploads.zip TO $PROJECT_ASSETS_FOLDER"
-        sleep 5
-        ssh "$SSH_USERNAME"@"$REMOTE_HOST" sudo cp "$ASSETS_FOLDER/$projectInput/$branchInput/uploads.zip /home/$SSH_USERNAME"
-        if [ $? -eq 0 ]; then
-            scp -r "$SSH_USERNAME"@"$REMOTE_HOST":"/home/$SSH_USERNAME/uploads.zip" "$PROJECT_ASSETS_FOLDER"
-            if [ $? -eq 0 ]; then
-                echo "uploads.zip has been copied inside $PROJECT_ASSETS_FOLDER"
-                cd "$PROJECT_ASSETS_FOLDER"
-                unzip uploads.zip
-                if [ $? -eq 0 ]; then
-                    echo "Uploads folder has been unzipped"
-                    rm -rf "$PROJECT_ASSETS_FOLDER/uploads.zip"
-                else
-                    echo "Failed attempt to unzip uploads folder. Do you have unzip command installed? Check and retry"
-                    exit
-                fi
-
-            else
-                echo "Failed attempt ssh connection for $SSH_USERNAME to $REMOTE_HOST"
-                exit
-            fi
-        else
-            echo "Failed attempt ssh connection for $SSH_USERNAME to $REMOTE_HOST"
-            exit
-        fi
-    fi
-
-    #ToDo: other platforms
-}
 
 checkDockerStatus
 choiceBranch
-
-read -p "Do you want to synchronize assets folder [Yy/Nn]?" yn
-checkDockerStatus=true
-while $checkDockerStatus; do
-    case $yn in
-        [Yy] ) showActiveProjects
-               checkDockerStatus=false
-               ;;
-        [Nn] ) echo "Assets not will be synchronized"
-                checkDockerStatus=false
-                ;;
-        * ) read -p "Please answer Yy or Nn " yn
-            ;;
-    esac
-done
+choiceSynchronizeAssets
 
 #Stop and remove existing container
 docker stop "$projectInput-phpmyadmin" && docker rm "$projectInput-phpmyadmin"
