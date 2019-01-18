@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+
+. `pwd`/docker-config/config.sh
+. common
+
+
+checkDockerStatus
+choiceBranch
+choiceSynchronizeAssets
+
+#Stop and remove existing container
+docker stop "$1-phpmyadmin" && docker rm "$1-phpmyadmin"
+docker stop "$1-php-apache" && docker rm "$1-php-apache"
+
+#Clean network
+docker network rm "$1-network"
+docker network create "$1-network"
+
+#Update local mysql image
+docker pull "$REGISTRY/phpmyadmin"
+
+# Run phpmyadmin image
+if [ ! -z "$REMOTE_MYSQL_HOST" ] && [ ! -z "$REMOTE_MYSQL_PORT" ]; then
+   docker run -d --name "$1"-phpmyadmin --network "$1-network" -e PMA_HOST="$REMOTE_MYSQL_HOST" -e PMA_PORT="$REMOTE_MYSQL_PORT" -p 8888:80 "$REGISTRY/phpmyadmin"
+fi
+
+# Run php-apache image
+docker pull "$REGISTRY/$PHP_APACHE_VERSION"
+
+ipAddress=`ifconfig | grep -Eo 'inet (addr:)?([0-9]*\.){3}[0-9]*' | grep -Eo '([0-9]*\.){3}[0-9]*' | grep -v '127.0.0.1'`
+
+docker run -d --name "$1-php-apache" --network "$1-network" -p 80:80 -e XDEBUG_CONFIG="remote_host=$ipAddress" -v "$DOCUMENT_ROOT":/var/www/html "$REGISTRY/$PHP_APACHE_VERSION"

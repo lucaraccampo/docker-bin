@@ -9,7 +9,7 @@ choiceBranch
 choiceSynchronizeAssets
 
 cd "$DOCUMENT_ROOT"
-read -p "Do you want start project with local or remote mysql container?[local/remote] " env
+read -p "Do you want start project with local or remote mysql container?[local/remote/db-shared/compose] " env
 checkEnvirnonment=true
 while $checkEnvirnoment; do
     case $env in
@@ -17,6 +17,12 @@ while $checkEnvirnoment; do
                 checkEnvirnoment=false
                 ;;
         remote ) startRemote
+                 checkEnvirnoment=false
+                 ;;
+        db-shared ) startDbShared "$projectInput"
+                 checkEnvirnoment=false
+                 ;;
+        compose ) startCompose "$projectInput" "$branchInput"
                  checkEnvirnoment=false
                  ;;
         * ) read -p "Retype envirnoment: " env
