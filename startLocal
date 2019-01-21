@@ -25,20 +25,20 @@ startMysqlContainerWithDump() {
 
         if [ $? -eq 0 ]
         then
-            if [ -e "$DOCUMENT_ROOT"/initdb ]
+            if [ -e "$DOCUMENT_ROOT"/init-db ]
             then
-                rm -rf "$DOCUMENT_ROOT"/initdb/*
+                rm -rf "$DOCUMENT_ROOT"/init-db/*
             else
-                mkdir "$DOCUMENT_ROOT"/initdb
+                mkdir "$DOCUMENT_ROOT"/init-db
             fi
-            scp -r "$SSH_USERNAME"@"$REMOTE_HOST":"/home/$SSH_USERNAME/$sqlDump" "$DOCUMENT_ROOT"/initdb
+            scp -r "$SSH_USERNAME"@"$REMOTE_HOST":"/home/$SSH_USERNAME/$sqlDump" "$DOCUMENT_ROOT"/init-db
             checkFileExist=false
         else
             read -p "Choice a valid sql file: " sqlDump
         fi
     done
 
-    docker run -d --name "$1-mysql" --network "$1-network" -p 3306:3306 -e MYSQL_ROOT_PASSWORD=root -e MYSQL_DATABASE="$1_$3" -v "$DOCUMENT_ROOT"/initdb:/docker-entrypoint-initdb.d --restart=always "$REGISTRY/mysql57"
+    docker run -d --name "$1-mysql" --network "$1-network" -p 3306:3306 -e MYSQL_ROOT_PASSWORD=root -e MYSQL_DATABASE="$1_$3" -v "$DOCUMENT_ROOT"/init-db:/docker-entrypoint-initdb.d --restart=always "$REGISTRY/mysql57"
 }
 
 
