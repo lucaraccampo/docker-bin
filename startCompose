@@ -1,0 +1,60 @@
+#!/usr/bin/env bash
+
+. `pwd`/docker-config/config.sh
+. common
+
+
+
+copyDumpLocally() {
+    docker-compose down -v
+    copyDataBaseDump $1 $2
+}
+
+
+echo -n "Please select docker folder in your projects to use Docker Compose. Now you are here: `pwd` "
+read dockerFolder
+
+cd "$dockerFolder"
+
+branchNameDashed="${2////_}"
+
+
+read -p "Do you want start from a new database? " yn
+
+checkNewDatabase=true
+while "$checkNewDatabase"; do
+    case "$yn" in
+        [Yy] ) copyDumpLocally $1 $2
+               checkNewDatabase=false
+               ;;
+        [Nn] ) checkNewDatabase=false
+               ;;
+        * ) read -p "Please answer Yy or Nn " yn
+            ;;
+    esac
+done
+
+# Copy renamed specific config file
+if [ $AVAILABLE_PLATFORM == drupal ]
+then
+    if [ -e "$DOCUMENT_ROOT"sites/example.settings.docker.local."$branchNameDashed".php ]; then
+        if [ -e "$PROJECT_ASSETS_FOLDER"settings.php ];then
+            chmod 777 "$PROJECT_ASSETS_FOLDER"settings.php
+        fi
+        cp "$DOCUMENT_ROOT"sites/example.settings.docker.local."$branchNameDashed".php "$PROJECT_ASSETS_FOLDER"settings.php
+    fi
+
+    if [ -e "$DOCUMENT_ROOT"sites/example.settings.local."$branchNameDashed".php ]; then
+        if [ -e "$PROJECT_ASSETS_FOLDER"settings.local.php ];then
+            chmod 777 "$PROJECT_ASSETS_FOLDER"settings.php
+        fi
+        cp "$DOCUMENT_ROOT"sites/example.settings.local."$branchNameDashed".php "$PROJECT_ASSETS_FOLDER"settings.local.php
+    fi
+fi
+
+# Build eventually
+docker-compose build
+
+# Start up container (add -d if you prefer background mode)
+docker-compose up
+
