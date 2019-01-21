@@ -10,6 +10,32 @@ copyDumpLocally() {
     copyDataBaseDump $1 $2
 }
 
+createEnvConfigFile() {
+    if [ -e .env ];then
+        rm -rf .env
+    fi
+
+    ipAddress=`ifconfig | grep -Eo 'inet (addr:)?([0-9]*\.){3}[0-9]*' | grep -Eo '([0-9]*\.){3}[0-9]*' | grep -v '127.0.0.1'`
+
+    cat > .env <<EOF
+COMPOSE_PROJECT_NAME=$1
+DOCUMENT_ROOT=$DOCUMENT_ROOT
+REMOTE_HOST_XDEBUG=$ipAddress
+
+TIMEZONE=Europe/Rome
+MYSQL_ROOT_PASSWORD=root
+MYSQL_USER=$1
+MYSQL_PASSWORD=$1
+MYSQL_DATABASE=$1_$branchNameDashed
+
+PMA_PORT=3306
+EOF
+
+    if [ ! $? -eq 0 ]; then
+        echo "Failed creation of .env file"
+        exit
+    fi
+}
 
 echo -n "Please select docker folder in your projects to use Docker Compose. Now you are here: `pwd` "
 read dockerFolder
@@ -18,6 +44,7 @@ cd "$dockerFolder"
 
 branchNameDashed="${2////_}"
 
+createEnvConfigFile $1 $2
 
 read -p "Do you want start from a new database? " yn
 

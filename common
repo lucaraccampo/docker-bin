@@ -31,6 +31,7 @@ checkDockerStatus() {
 
 choiceBranch() {
     echo "Show active branches"
+    git fetch --all
     git branch --all
     echo "--------------------"
 
