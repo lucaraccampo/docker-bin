@@ -46,7 +46,7 @@ branchNameDashed="${2////_}"
 
 createEnvConfigFile $1 $2
 
-read -p "Do you want start from a new database? " yn
+read -p "Do you want start from a new database[Yy/Nn]? " yn
 
 checkNewDatabase=true
 while "$checkNewDatabase"; do
