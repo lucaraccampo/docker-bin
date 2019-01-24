@@ -8,8 +8,7 @@ checkDockerStatus
 choiceBranch
 choiceSynchronizeAssets
 
-cd "$DOCUMENT_ROOT"
-read -p "Do you want start project with local or remote mysql container?[local/remote/db-shared/compose] " env
+read -p "How do you want start project ?[local/db-shared/compose] " env
 checkEnvirnonment=true
 while $checkEnvirnoment; do
     case $env in
