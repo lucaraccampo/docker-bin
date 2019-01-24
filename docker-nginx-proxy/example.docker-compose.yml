@@ -3,7 +3,7 @@ services:
   proxy:
     build: ./
     networks:
-      - banca5corporate
+#      - banca5corporate
       - banca5extranet
     ports:
       - 80:80
