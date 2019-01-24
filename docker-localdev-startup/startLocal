@@ -21,10 +21,12 @@ startMysqlContainerWithDump() {
 docker stop "$1-mysql"
 docker stop "$1-phpmyadmin" && docker rm "$1-phpmyadmin"
 docker stop "$1-php-apache" && docker rm "$1-php-apache"
+docker stop "$1-redis" && docker rm "$1-redis"
 
 #Update local mysql image
 docker pull "$REGISTRY/mysql57"
 docker pull "$REGISTRY/phpmyadmin"
+docker pull "$REGISTRY/redis"
 
 branchNameDashed="${2////_}"
 
@@ -57,6 +59,8 @@ docker pull "$REGISTRY/$PHP_APACHE_VERSION"
 ipAddress=`ifconfig | grep -Eo 'inet (addr:)?([0-9]*\.){3}[0-9]*' | grep -Eo '([0-9]*\.){3}[0-9]*' | grep -v '127.0.0.1'`
 
 docker run -d --name "$1-php-apache" --network "$1-network" --link "$1-mysql:$1-mysql" -p 80:80 -e XDEBUG_CONFIG="remote_host=$ipAddress" -v "$DOCUMENT_ROOT":/var/www/html "$REGISTRY/$PHP_APACHE_VERSION"
+
+docker run -d --name "$1-redis" --network "$1-network" --restart=always "$REGISTRY/redis"
 
 # Copy renamed specific config file
 copySettings
