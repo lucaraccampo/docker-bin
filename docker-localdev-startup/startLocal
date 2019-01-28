@@ -29,6 +29,7 @@ docker pull "$REGISTRY/phpmyadmin"
 docker pull "$REGISTRY/redis"
 
 branchNameDashed="${2////_}"
+branchNameDashed="${branchNameDashed//-/_}"
 
 read -p "Do you want start from a new database? " yn
 

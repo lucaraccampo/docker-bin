@@ -43,6 +43,8 @@ read dockerFolder
 cd "$dockerFolder"
 
 branchNameDashed="${2////_}"
+branchNameDashed="${branchNameDashed//-/_}"
+
 
 createEnvConfigFile $1 $2
 
