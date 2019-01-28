@@ -3,3 +3,4 @@
 .DS_STORE
 docker-nginx-proxy/default.conf
 docker-nginx-proxy/docker-compose.yml
+docker-nginx-proxy/docker-compose.override.yml
