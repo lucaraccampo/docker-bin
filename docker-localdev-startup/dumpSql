@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+
+echo "List all container with suffix -mysql"
+#list all container with suffix -mysql in running status
+docker ps -a --filter "name=-mysql" --filter status=running
+
+echo -n "Choice mysql container to backup database: "
+read mysqlContainer
+
+echo "Show databases in $mysqlContainer"
+docker exec -it "$mysqlContainer" mysql -u root -proot -e "show databases;"
+
+echo -n "Choice database to dump: "
+read database
+
+date=`date +"%Y%m%d"`
+docker exec -it "$mysqlContainer" mysqldump -u root -proot "$database" > "$date"-"$database".sql
