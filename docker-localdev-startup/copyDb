@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+
+echo "List all container with suffix -mysql"
+#list all container with suffix -mysql in running status
+docker ps -a --filter "name=-mysql" --filter status=running --format {{.Names}}
+
+echo -n "Choose mysql container: "
+read mysqlContainer
+
+echo "Show databases in $mysqlContainer"
+docker exec -it "$mysqlContainer" mysql -u root -proot -e "show databases;"
+
+echo -n "Choose database to copy: "
+read database
+
+echo -n "Choose new destination database name: "
+read new_database
+
+docker exec -it "$mysqlContainer" mysql -u root -proot -e "create database $new_database;"
+docker exec -it "$mysqlContainer" bash -c "mysqldump --force -u root -proot -v $database | mysql -u root -proot -v $new_database"
