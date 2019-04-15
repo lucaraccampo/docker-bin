@@ -22,5 +22,5 @@ echo -n "Type sql file path to import: "
 read sql_local_path
 
 # run command without -t flag to avoid error "the input device is not a TTY"
-docker exec -i "$mysqlContainer" mysql -u root -proot "$new_database" < "sql_local_path"
+docker exec -i "$mysqlContainer" mysql -u root -proot "$new_database" < "$sql_local_path"
 
