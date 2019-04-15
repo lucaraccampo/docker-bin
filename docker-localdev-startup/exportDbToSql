@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+. common
+
 # Export container db into local sql
 
 echo "List all container with suffix -mysql"
@@ -16,4 +18,6 @@ echo -n "Choose database to dump: "
 read database
 
 date=`date +"%Y%m%d"`
-docker exec -it "$mysqlContainer" mysqldump -u root -proot "$database" > "$date"-"$database".sql
+echo "Creating database dump: $date-$database.sql"
+docker exec -i "$mysqlContainer" mysqldump -u root "$database" > "$date"-"$database".sql &
+spinner
