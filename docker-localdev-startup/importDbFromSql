@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+
+# Import local sql into container db
+
+echo "List all container with suffix -mysql"
+#list all container with suffix -mysql in running status
+docker ps -a --filter "name=-mysql" --filter status=running --format {{.Names}}
+
+echo -n "Choose mysql container: "
+read mysqlContainer
+
+echo "Show databases in $mysqlContainer"
+docker exec -it "$mysqlContainer" mysql -u root -proot -e "show databases;"
+
+echo -n "Choose new database name: "
+read new_database
+
+docker exec -it "$mysqlContainer" mysql -u root -proot -e "create database $new_database;"
+
+# TODO Add autocomplete sql_local_path if it's possible
+echo -n "Type sql file path to import: "
+read sql_local_path
+
+# run command without -t flag to avoid error "the input device is not a TTY"
+docker exec -i "$mysqlContainer" mysql -u root -proot "$new_database" < "sql_local_path"
+
