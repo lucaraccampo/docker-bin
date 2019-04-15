@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+
+# Copy assets folder to remote server
+# Zip the files folder in files.zip
+
+# Create dump .sql from develop/test server
+
+# Move files to mobile-server
