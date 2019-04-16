@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+
+. `pwd`/docker-config/config.sh
+. common
+
+# Check Docker daemon is available
+checkDockerStatus
+
+# Work on current branch
+
+mkdir snapshot
+cd snapshot
+# Zip the files folder in files.zip
+#cd sites/default/
+zip -r files.zip ../sites/default/files
+
+# Copy assets folder to remote server
+
+# Create dump .sql from develop/test server
+exportDbToSql
+
+# Move files to mobile-server
