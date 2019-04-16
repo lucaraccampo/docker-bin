@@ -1,0 +1,7 @@
+.idea
+.DS_STORE
+.env
+init-db/*.sql
+docker-compose.override.yml
+config/php/php.ini
+config/vhost/default.conf
