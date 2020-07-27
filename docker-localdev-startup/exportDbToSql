@@ -19,5 +19,5 @@ read database
 
 date=`date +"%Y%m%d"`
 echo "Creating database dump: $date-$database.sql"
-docker exec -i "$mysqlContainer" mysqldump -u root "$database" > "$date"-"$database".sql &
+docker exec -i "$mysqlContainer" mysqldump -u root -proot "$database" > "$date"-"$database".sql &
 spinner
